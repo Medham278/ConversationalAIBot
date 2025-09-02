@@ -13,7 +13,7 @@ A modern, responsive conversational AI bot built with React and Vite, featuring 
 - 🤗 **Hugging Face Integration** - Multiple model fallback system
 - ⚡ **Smart Fallbacks** - Conversational responses when API is unavailable
 
-![Demo Screenshot](./public/demo-screenshot.png)
+![Demo Screenshot](./public/image.png)
 
 ## Getting Started
 
