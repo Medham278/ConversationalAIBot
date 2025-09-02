@@ -51,14 +51,14 @@ class ChatService {
 
   async sendMessage(sessionId, message) {
     try {
-      const response = await this.client.post('/chat/message', {
-        session_id: sessionId,
-        message: message
+      const response = await this.client.post('/chat', {
+        message: message,
+        conversation_history: []
       });
       return response.data;
     } catch (error) {
       console.error('Failed to send message:', error);
-      throw new Error('Failed to get response from backend. Check if FastAPI server is running.');
+      throw new Error('Failed to get response from OpenAI backend.');
     }
   }
 

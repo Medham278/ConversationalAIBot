@@ -236,8 +236,8 @@ function App() {
           </div>
 
           <div className="info-panel">
-            <h4>Demo Mode</h4>
-            <p>Running in demo mode with mock responses</p>
+            <h4>OpenAI Integration</h4>
+            <p>Connected to OpenAI GPT-3.5-turbo</p>
             <p className="info-note">
               Backend URL: <code>http://localhost:8000</code>
             </p>
