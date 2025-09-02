@@ -12,7 +12,8 @@ app.use(express.json());
 
 // Initialize OpenAI
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'your-openai-api-key-here'
+  apiKey: process.env.OPENAI_API_KEY || 'your-openai-api-key-here',
+  project: process.env.OPENAI_PROJECT_ID || undefined
 });
 
 // Health check endpoint
