@@ -49,12 +49,14 @@ The app will open at `http://localhost:3000`
 To enable AI responses, get a free API key from [Hugging Face](https://huggingface.co/settings/tokens):
 
 1. Create a `.env` file in the root directory
-2. Add your API key:
+2. Add your API key (never commit this file):
 ```env
 VITE_HUGGING_FACE_API_KEY=hf_your_actual_token_here
 ```
 
-**Note:** The app works without an API key using intelligent fallback responses.
+**⚠️ Security Note:** Never commit your `.env` file to version control. The `.gitignore` file is configured to exclude it.
+
+**Note:** The app works perfectly without an API key using intelligent fallback responses.
 
 ## AI Models
 

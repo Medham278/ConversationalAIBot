@@ -19,7 +19,7 @@ export async function startSession() {
 async function tryHuggingFaceAPI(message) {
   const apiKey = import.meta.env.VITE_HUGGING_FACE_API_KEY;
   
-  if (!apiKey || apiKey === 'hf_your_token_here') {
+  if (!apiKey || apiKey === 'hf_your_token_here' || apiKey.trim() === '') {
     console.log('No Hugging Face API key found');
     return null;
   }
