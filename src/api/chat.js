@@ -130,6 +130,7 @@ async function tryHuggingFaceAPI(message) {
     } catch (error) {
       console.error(`Error with model ${modelName}:`, error);
       continue;
+    }
   }
   
   console.log('All Hugging Face models failed');
@@ -156,11 +157,11 @@ export async function sendMessage(sessionId, message) {
     // Try to provide some context-aware responses for common questions
     const lowerMessage = message.toLowerCase();
     
+    if (lowerMessage.includes('narendra modi')) {
       return { 
         answer: "As of my last update, Narendra Modi is the Prime Minister of India. Please verify this information as it may have changed.",
         model: "fallback"
       };
-      return { answer: "I'm having trouble accessing my knowledge base right now, but as of my last update, Narendra Modi is the Prime Minister of India. Please verify this information as it may have changed." };
     }
     
     if (lowerMessage.includes('what') || lowerMessage.includes('who') || lowerMessage.includes('how') || lowerMessage.includes('when') || lowerMessage.includes('where')) {
@@ -170,7 +171,6 @@ export async function sendMessage(sessionId, message) {
       };
     }
     
-    if (lowerMessage.includes('narendra modi')) {
     return { 
       answer: "I'm having some connectivity issues with my AI backend right now. The models I'm trying to use aren't responding properly. Please try again in a moment, or let me know if you'd like me to attempt a different approach to your question.",
       model: "fallback"
