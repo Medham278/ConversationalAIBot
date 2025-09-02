@@ -3,8 +3,12 @@
 // Models optimized for question-answering and conversation
 const workingModels = [
   "microsoft/DialoGPT-medium",
-  "microsoft/DialoGPT-small", 
-  "gpt2"
+  "microsoft/DialoGPT-small",
+  "facebook/blenderbot-400M-distill",
+  "microsoft/DialoGPT-large",
+  "gpt2",
+  "distilgpt2",
+  "facebook/blenderbot_small-90M"
 ];
 
 export async function startSession() {
@@ -30,15 +34,12 @@ async function tryHuggingFaceAPI(message) {
       // Different request formats for different model types
       if (modelName.includes('DialoGPT')) {
         requestBody = {
-          inputs: {
-            past_user_inputs: [],
-            generated_responses: [],
-            text: message
-          },
+          inputs: message,
           parameters: {
-            max_length: 100,
+            max_new_tokens: 50,
             temperature: 0.7,
-            do_sample: true
+            do_sample: true,
+            return_full_text: false
           },
           options: {
             wait_for_model: true,
@@ -49,7 +50,7 @@ async function tryHuggingFaceAPI(message) {
         requestBody = {
           inputs: message,
           parameters: {
-            max_length: 100,
+            max_new_tokens: 60,
             temperature: 0.7,
             do_sample: true
           },
@@ -58,10 +59,20 @@ async function tryHuggingFaceAPI(message) {
             use_cache: false
           }
         };
+      } else if (modelName.includes('distilgpt2')) {
+        requestBody = {
+          inputs: `Human: ${message}\nAI:`,
+          parameters: {
+            max_new_tokens: 50,
+            temperature: 0.8,
+            do_sample: true,
+            return_full_text: false
+          }
+        };
       } else {
         // For GPT-2 and similar models
         requestBody = {
-          inputs: `Question: ${message}\nAnswer:`,
+          inputs: `Human: ${message}\nAI:`,
           parameters: {
             max_new_tokens: 50,
             temperature: 0.7,
@@ -95,7 +106,9 @@ async function tryHuggingFaceAPI(message) {
         
         // Handle different response formats
         if (modelName.includes('DialoGPT')) {
-          if (data.generated_text) {
+          if (Array.isArray(data) && data[0]?.generated_text) {
+            botResponse = data[0].generated_text;
+          } else if (data.generated_text) {
             botResponse = data.generated_text;
           }
         } else if (Array.isArray(data) && data.length > 0) {
@@ -111,8 +124,9 @@ async function tryHuggingFaceAPI(message) {
         // Clean up the response
         if (botResponse && typeof botResponse === 'string') {
           // Remove the input prompt if it's included
-          botResponse = botResponse.replace(`Question: ${message}\nAnswer:`, '').trim();
+          botResponse = botResponse.replace(`Human: ${message}\nAI:`, '').trim();
           botResponse = botResponse.replace(message, '').trim();
+          botResponse = botResponse.replace(/^(Human:|AI:)/, '').trim();
           
           // Remove common artifacts
           botResponse = botResponse.replace(/^[:\-\s]+/, '').trim();
