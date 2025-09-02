@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Settings, Activity } from 'lucide-react';
+import ChatService from './services/ChatService';
 import './App.css';
 
 function App() {
@@ -53,11 +54,8 @@ function App() {
     setIsLoading(true);
 
     try {
-      // Import ChatService
-      const ChatService = (await import('./services/ChatService')).default;
-      
-      // Send message to backend
-      const response = await ChatService.sendMessage(sessionId, userMessage.content);
+      // Use mock response in demo mode
+      const response = await ChatService.getMockResponse(userMessage.content);
       
       const botMessage = {
         id: Date.now() + 1,
@@ -80,7 +78,7 @@ function App() {
       const errorMessage = {
         id: Date.now() + 1,
         type: 'bot',
-        content: 'Sorry, I\'m having trouble connecting to the server. Please try again later.',
+        content: 'Sorry, I encountered an error. Please try again.',
         timestamp: new Date(),
         isError: true
       };
