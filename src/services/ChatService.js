@@ -5,11 +5,12 @@ class ChatService {
 
   async startSession() {
     try {
-      const response = await fetch(`${this.baseURL}/`, {
-        method: 'GET',
+      const response = await fetch(`${this.baseURL}/chat/start`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({})
       });
       
       if (!response.ok) {
@@ -17,43 +18,46 @@ class ChatService {
       }
       
       const data = await response.json();
-      console.log('Backend connected:', data);
-      return { session_id: 'hf-session-' + Date.now() };
+      console.log('Session started:', data);
+      return data; // Should contain session_id
     } catch (error) {
-      console.error('Backend connection failed:', error);
-      throw error; // Don't fall back to mock, let user know backend is down
+      console.error('Failed to start session:', error);
+      throw error;
     }
   }
 
   async sendMessage(sessionId, message) {
     try {
-      console.log('Sending message to HF backend:', message);
+      console.log('Sending message to FastAPI backend:', message);
       
-      const response = await fetch(`${this.baseURL}/chat`, {
+      const response = await fetch(`${this.baseURL}/chat/message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: message })
+        body: JSON.stringify({ 
+          session_id: sessionId,
+          message: message 
+        })
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('HF API Error Response:', errorText);
+        console.error('FastAPI Error Response:', errorText);
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('HF API Response:', data);
+      console.log('FastAPI Response:', data);
       
-      if (data.response) {
-        return { answer: data.response };
+      if (data.answer) {
+        return { answer: data.answer };
       } else {
-        throw new Error('No response from HF API');
+        throw new Error('No answer from FastAPI backend');
       }
     } catch (error) {
-      console.error('Failed to send message to HF backend:', error);
-      throw error; // Don't use mock responses, show the error
+      console.error('Failed to send message to FastAPI backend:', error);
+      throw error;
     }
   }
 
