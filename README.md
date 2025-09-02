@@ -48,12 +48,47 @@ This frontend is designed to work with a FastAPI backend. The expected API endpo
 - `GET /admin/metrics` - Get session metrics
 - `GET /health` - Health check endpoint
 
+## LLM Integration
+
+The backend supports multiple LLM providers:
+
+### OpenAI (Recommended)
+1. Get an API key from [OpenAI](https://platform.openai.com/api-keys)
+2. Set `OPENAI_API_KEY` in your `.env` file
+3. Set `LLM_PROVIDER=openai`
+
+### Ollama (Local LLM)
+1. Install [Ollama](https://ollama.ai/)
+2. Run `ollama pull llama2` (or your preferred model)
+3. Set `LLM_PROVIDER=ollama` in your `.env` file
+4. Configure `OLLAMA_BASE_URL` and `OLLAMA_MODEL`
+
+### Mock Mode (Development)
+- Set `LLM_PROVIDER=mock` for development with simulated responses
+
 ### Environment Variables
 
-Create a `.env` file in the root directory:
+Create a `.env` file in the backend directory:
 
 ```env
-REACT_APP_API_URL=http://localhost:8000
+# LLM Configuration
+LLM_PROVIDER=openai
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Alternative: Ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama2
+
+# Server Configuration
+HOST=0.0.0.0
+PORT=8000
+DEBUG=True
+
+# Redis Configuration
+REDIS_URL=redis://localhost:6379
+
+# CORS Configuration
+ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
 
 ## Project Structure
