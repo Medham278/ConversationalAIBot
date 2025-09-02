@@ -204,11 +204,11 @@ function App() {
 
           <div className="info-panel">
             <h4>AI Integration Status</h4>
-            <p>Hugging Face API Multi-Model</p>
+            <p>HF API + Smart Fallbacks</p>
             <div className="info-note">
-              <p>✅ DialoGPT, GPT-2, BlenderBot</p>
-              <p>Hugging Face Inference API</p>
-              <code>Status: Ready</code>
+              <p>🔄 HF Models + Intelligent Responses</p>
+              <p>Tries API first, smart fallbacks if needed</p>
+              <code>Status: Resilient</code>
             </div>
           </div>
         </div>
