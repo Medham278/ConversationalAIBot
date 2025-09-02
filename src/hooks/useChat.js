@@ -53,7 +53,8 @@ export const useChat = () => {
         id: Date.now() + 1,
         type: 'bot',
         content: response.answer,
-        timestamp: new Date()
+        timestamp: new Date(),
+        model: response.model
       };
 
       setMessages(prev => [...prev, botMessage]);

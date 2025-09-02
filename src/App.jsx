@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Settings, Activity } from 'lucide-react';
+import { Send, Bot, User, Settings, Activity, Cpu, Zap, MessageSquare } from 'lucide-react';
 import { useChat } from './hooks/useChat';
 import './App.css';
 
@@ -204,10 +204,10 @@ function App() {
 
           <div className="info-panel">
             <h4>AI Integration Status</h4>
-            <p>Multi-model AI with local fallback</p>
+            <p>Hugging Face API Multi-Model</p>
             <div className="info-note">
-              <p>✅ Multiple Models Available</p>
-              <p>HF API + Transformers.js fallback</p>
+              <p>✅ DialoGPT, GPT-2, BlenderBot</p>
+              <p>Hugging Face Inference API</p>
               <code>Status: Ready</code>
             </div>
           </div>

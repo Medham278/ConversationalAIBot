@@ -4,7 +4,7 @@
 const workingModels = [
   "microsoft/DialoGPT-medium",
   "microsoft/DialoGPT-small", 
-  "facebook/blenderbot-400M-distill",
+              return { text: botResponse, model: modelName };
   "gpt2"
 ];
 
@@ -144,10 +144,13 @@ export async function sendMessage(sessionId, message) {
     console.log('Sending message:', message);
     
     // Try Hugging Face API first
-    let response = await tryHuggingFaceAPI(message);
+    let apiResponse = await tryHuggingFaceAPI(message);
     
-    if (response) {
-      return { answer: response };
+    if (apiResponse) {
+      return { 
+        answer: apiResponse.text,
+        model: apiResponse.model
+      };
     }
 
     // If all models fail, provide a helpful response indicating the issue
@@ -156,23 +159,31 @@ export async function sendMessage(sessionId, message) {
     // Try to provide some context-aware responses for common questions
     const lowerMessage = message.toLowerCase();
     
-    if (lowerMessage.includes('prime minister') && lowerMessage.includes('india')) {
+      return { 
+        answer: "As of my last update, Narendra Modi is the Prime Minister of India. Please verify this information as it may have changed.",
+        model: "fallback"
+      };
       return { answer: "I'm having trouble accessing my knowledge base right now, but as of my last update, Narendra Modi is the Prime Minister of India. Please verify this information as it may have changed." };
     }
     
     if (lowerMessage.includes('what') || lowerMessage.includes('who') || lowerMessage.includes('how') || lowerMessage.includes('when') || lowerMessage.includes('where')) {
-      return { answer: "I'm experiencing some technical difficulties with my AI models right now. Could you try asking your question again, or rephrase it? I want to give you a proper answer." };
+      return { 
+        answer: "I'm experiencing some technical difficulties with my AI models right now. Could you try asking your question again, or rephrase it? I want to give you a proper answer.",
+        model: "fallback"
+      };
     }
     
     return { 
-      answer: "I'm having some connectivity issues with my AI backend right now. The models I'm trying to use aren't responding properly. Please try again in a moment, or let me know if you'd like me to attempt a different approach to your question." 
+      answer: "I'm having some connectivity issues with my AI backend right now. The models I'm trying to use aren't responding properly. Please try again in a moment, or let me know if you'd like me to attempt a different approach to your question.",
+      model: "fallback"
     };
 
   } catch (error) {
     console.error('Complete API failure:', error);
     
     return { 
-      answer: "I'm experiencing technical difficulties right now. My AI models aren't responding properly. Please try again in a few moments." 
+      answer: "I'm experiencing technical difficulties right now. My AI models aren't responding properly. Please try again in a few moments.",
+      model: "error"
     };
   }
 }
