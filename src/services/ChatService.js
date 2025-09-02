@@ -45,11 +45,7 @@ class ChatService {
       return response.data;
     } catch (error) {
       console.error('Failed to start session:', error);
-      // Return mock session for development
-      return {
-        session_id: 'mock-session-' + Date.now(),
-        status: 'mock'
-      };
+      throw new Error('Backend not available. Please start the FastAPI backend on port 8000.');
     }
   }
 
@@ -62,9 +58,7 @@ class ChatService {
       return response.data;
     } catch (error) {
       console.error('Failed to send message:', error);
-      
-      // Return mock response for development
-      return this.getMockResponse(message);
+      throw new Error('Failed to get response from backend. Check if FastAPI server is running.');
     }
   }
 

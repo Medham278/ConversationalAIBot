@@ -38,24 +38,6 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const getMockResponse = (message) => {
-    const responses = {
-      'hello': 'Hello! How can I assist you today?',
-      'help': 'I can help you with various tasks including answering questions, providing information, and having conversations. What would you like to know?',
-      'capabilities': 'I can assist with:\n• Answering questions\n• Providing explanations\n• Having conversations\n• Helping with problem-solving\n• And much more!',
-      'what can you do': 'I\'m an AI assistant capable of helping with a wide range of tasks. I can answer questions, explain concepts, help with analysis, and engage in meaningful conversations.',
-      'default': 'I understand you\'re asking about "' + message + '". While I don\'t have a specific response for that right now, I\'m here to help! Could you provide more details or ask something else?'
-    };
-
-    const lowerMessage = message.toLowerCase();
-    for (const [key, value] of Object.entries(responses)) {
-      if (key !== 'default' && lowerMessage.includes(key)) {
-        return value;
-      }
-    }
-    return responses.default;
-  };
-
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
 
@@ -71,15 +53,16 @@ function App() {
     setIsLoading(true);
 
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+      // Import ChatService
+      const ChatService = (await import('./services/ChatService')).default;
       
-      const response = getMockResponse(userMessage.content);
+      // Send message to backend
+      const response = await ChatService.sendMessage(sessionId, userMessage.content);
       
       const botMessage = {
         id: Date.now() + 1,
         type: 'bot',
-        content: response,
+        content: response.answer,
         timestamp: new Date()
       };
 
