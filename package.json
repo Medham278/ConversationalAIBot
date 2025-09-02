@@ -1,0 +1,12 @@
+{
+  "name": "conversational-ai-bot",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "cd frontend && npm start",
+    "build": "cd frontend && npm run build",
+    "install-deps": "cd frontend && npm install"
+  },
+  "workspaces": [
+    "frontend"
+  ]
+}
