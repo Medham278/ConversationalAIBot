@@ -27,7 +27,7 @@ app.add_middleware(
 
 # Hugging Face configuration
 HF_API_KEY = os.getenv("HUGGING_FACE_API_KEY")
-HF_MODEL = "microsoft/DialoGPT-medium"
+HF_MODEL = "microsoft/DialoGPT-large"
 HF_API_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
 
 # In-memory session storage (for demo purposes)
@@ -79,20 +79,7 @@ async def chat_message(request: ChatRequest):
         raise HTTPException(status_code=404, detail="Session not found")
     
     try:
-        # Get session history
-        session = sessions[request.session_id]
-        
-        # For conversational models, we need to format the conversation properly
-        conversation_text = ""
-        for msg in session["messages"][-5:]:  # Keep last 5 exchanges
-            if msg["role"] == "user":
-                conversation_text += f"User: {msg['content']}\n"
-            else:
-                conversation_text += f"Bot: {msg['content']}\n"
-        
-        conversation_text += f"User: {request.message}\nBot:"
-        
-        # Call Hugging Face API
+        # Call Hugging Face Inference API with correct format
         async with httpx.AsyncClient(timeout=30.0) as client:
             hf_response = await client.post(
                 HF_API_URL,
@@ -101,17 +88,12 @@ async def chat_message(request: ChatRequest):
                     "Content-Type": "application/json",
                 },
                 json={
-                    "inputs": conversation_text,
+                    "inputs": request.message,
                     "parameters": {
-                        "max_new_tokens": 100,
+                        "return_full_text": False,
+                        "max_new_tokens": 150,
                         "temperature": 0.7,
-                        "do_sample": True,
-                        "top_p": 0.9,
-                        "repetition_penalty": 1.1,
-                        "return_full_text": False
-                    },
-                    "options": {
-                        "wait_for_model": True
+                        "do_sample": True
                     }
                 }
             )
@@ -139,11 +121,8 @@ async def chat_message(request: ChatRequest):
         if not response_text:
             response_text = "I understand your question. Let me help you with that!"
         
-        # Remove any repeated input text
-        if conversation_text in response_text:
-            response_text = response_text.replace(conversation_text, "").strip()
-        
         # Store messages in session
+        session = sessions[request.session_id]
         session["messages"].append({"role": "user", "content": request.message})
         session["messages"].append({"role": "assistant", "content": response_text})
         
