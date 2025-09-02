@@ -1,26 +1,4 @@
 // src/api/chat.js
-import { pipeline } from '@xenova/transformers';
-
-let generator = null;
-
-// Initialize the text generation pipeline
-async function initializeGenerator() {
-  if (!generator) {
-    try {
-      // Use a lightweight model that works well in browsers
-      generator = await pipeline('text-generation', 'Xenova/gpt2', {
-        quantized: true,
-        progress_callback: (progress) => {
-          console.log('Model loading progress:', progress);
-        }
-      });
-    } catch (error) {
-      console.error('Failed to initialize local model:', error);
-      generator = null;
-    }
-  }
-  return generator;
-}
 
 // Working Hugging Face models to try
 const workingModels = [
@@ -110,53 +88,16 @@ async function tryHuggingFaceAPI(message) {
   return null;
 }
 
-async function tryTransformersJS(message) {
-  try {
-    const gen = await initializeGenerator();
-    if (!gen) return null;
-
-    const result = await gen(message, {
-      max_new_tokens: 30,
-      temperature: 0.7,
-      do_sample: true,
-      return_full_text: false
-    });
-
-    if (result && result.length > 0) {
-      let response = result[0].generated_text || '';
-      // Clean up the response
-      response = response.replace(message, '').trim();
-      response = response.replace(/^[:\-\s]+/, '').trim();
-      
-      if (response.length > 0) {
-        return response;
-      }
-    }
-  } catch (error) {
-    console.error('Transformers.js error:', error);
-  }
-  
-  return null;
-}
-
 export async function sendMessage(sessionId, message) {
   try {
-    // First try Hugging Face API with multiple models
+    // Try Hugging Face API with multiple models
     let response = await tryHuggingFaceAPI(message);
     
     if (response) {
       return { answer: response };
     }
 
-    // If HF API fails, try local transformers.js
-    console.log('Trying local transformers.js...');
-    response = await tryTransformersJS(message);
-    
-    if (response) {
-      return { answer: response };
-    }
-
-    // If everything fails, provide contextual mock responses
+    // If HF API fails, provide contextual mock responses
     const mockResponses = [
       "That's an interesting point. Could you tell me more about what you're thinking?",
       "I understand what you're saying. What would you like to explore further?",
@@ -169,7 +110,7 @@ export async function sendMessage(sessionId, message) {
     return { answer: randomResponse };
 
   } catch (error) {
-    console.error('All methods failed:', error);
+    console.error('API call failed:', error);
     
     return { 
       answer: "I'm having some technical difficulties right now, but I'm here to help. Could you try rephrasing your question?" 
