@@ -5,30 +5,31 @@ class ChatService {
 
   async startSession() {
     try {
+      console.log('Starting new chat session...');
       const response = await fetch(`${this.baseURL}/chat/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({})
+        }
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`Failed to start session: ${response.status} - ${errorText}`);
       }
       
       const data = await response.json();
-      console.log('Session started:', data);
-      return data; // Should contain session_id
+      console.log('Session started successfully:', data);
+      return data;
     } catch (error) {
       console.error('Failed to start session:', error);
-      throw error;
+      throw new Error(`Connection failed: ${error.message}`);
     }
   }
 
   async sendMessage(sessionId, message) {
     try {
-      console.log('Sending message to FastAPI backend:', message);
+      console.log('Sending message:', message);
       
       const response = await fetch(`${this.baseURL}/chat/message`, {
         method: 'POST',
@@ -43,28 +44,32 @@ class ChatService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('FastAPI Error Response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        console.error('Backend Error:', errorText);
+        throw new Error(`Backend error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('FastAPI Response:', data);
+      console.log('Received response:', data);
       
-      if (data.answer) {
-        return { answer: data.answer };
-      } else {
-        throw new Error('No answer from FastAPI backend');
-      }
+      return { answer: data.answer };
     } catch (error) {
-      console.error('Failed to send message to FastAPI backend:', error);
-      throw error;
+      console.error('Failed to send message:', error);
+      throw new Error(`Failed to get AI response: ${error.message}`);
     }
   }
 
   async getMetrics() {
+    try {
+      const response = await fetch(`${this.baseURL}/admin/metrics`);
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.error('Failed to get metrics:', error);
+    }
     return {
-      active_sessions: 1,
-      avg_response_time_ms: 250,
+      active_sessions: 0,
+      avg_response_time_ms: 0,
       error_rate: '0%'
     };
   }
