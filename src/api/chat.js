@@ -180,21 +180,6 @@ export async function sendMessage(sessionId, message) {
 function getIntelligentFallback(message) {
   const lowerMessage = message.toLowerCase().trim();
   
-  // Political leaders
-  if (lowerMessage.includes('prime minister') && lowerMessage.includes('india')) {
-    return { 
-      answer: "As of my last update, Narendra Modi is the Prime Minister of India. He has been serving since May 2014. Please verify current information as political situations can change.",
-      model: "smart-fallback"
-    };
-  }
-  
-  if (lowerMessage.includes('president') && lowerMessage.includes('usa')) {
-    return { 
-      answer: "As of my last update, Joe Biden is the President of the United States. Please check current sources for the most up-to-date information.",
-      model: "smart-fallback"
-    };
-  }
-  
   // Greetings
   if (lowerMessage.match(/^(hi|hello|hey|good morning|good afternoon|good evening)/)) {
     const greetings = [
@@ -221,48 +206,6 @@ function getIntelligentFallback(message) {
   if (lowerMessage.includes('what') && (lowerMessage.includes('can you') || lowerMessage.includes('do you'))) {
     return {
       answer: "I can help you with a wide variety of topics including general knowledge questions, explanations of concepts, current events (though my information has a cutoff date), math problems, and much more. What would you like to know about?",
-      model: "smart-fallback"
-    };
-  }
-  
-  // Math questions
-  if (lowerMessage.match(/\d+\s*[\+\-\*\/]\s*\d+/)) {
-    try {
-      // Simple math evaluation (safe for basic operations)
-      const mathExpression = lowerMessage.match(/(\d+\s*[\+\-\*\/]\s*\d+)/)[0];
-      const result = Function('"use strict"; return (' + mathExpression.replace(/[^0-9+\-*/\s]/g, '') + ')')();
-      return {
-        answer: `The answer to ${mathExpression} is ${result}.`,
-        model: "smart-fallback"
-      };
-    } catch (e) {
-      return {
-        answer: "I can see you're asking about math, but I'm having trouble parsing that expression. Could you try rephrasing it?",
-        model: "smart-fallback"
-      };
-    }
-  }
-  
-  // Science questions
-  if (lowerMessage.includes('speed of light')) {
-    return {
-      answer: "The speed of light in a vacuum is approximately 299,792,458 meters per second (or about 186,282 miles per second). This is one of the fundamental constants in physics.",
-      model: "smart-fallback"
-    };
-  }
-  
-  // Technology questions
-  if (lowerMessage.includes('artificial intelligence') || lowerMessage.includes('ai')) {
-    return {
-      answer: "Artificial Intelligence (AI) refers to computer systems that can perform tasks that typically require human intelligence, such as learning, reasoning, and problem-solving. AI includes machine learning, natural language processing, and many other technologies.",
-      model: "smart-fallback"
-    };
-  }
-  
-  // Programming questions
-  if (lowerMessage.includes('javascript') || lowerMessage.includes('programming')) {
-    return {
-      answer: "JavaScript is a versatile programming language primarily used for web development. It can run in browsers and on servers (Node.js). Would you like to know something specific about JavaScript or programming in general?",
       model: "smart-fallback"
     };
   }
