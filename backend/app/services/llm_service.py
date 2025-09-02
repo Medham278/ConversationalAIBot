@@ -20,10 +20,17 @@ class LLMService:
         # Initialize OpenAI if configured
         if self.provider == "openai":
             openai_api_key = os.getenv("OPENAI_API_KEY")
+            openai_project_id = os.getenv("OPENAI_PROJECT_ID")
             if openai_api_key and openai_api_key != "your_openai_api_key_here":
                 try:
-                    self.openai_client = AsyncOpenAI(api_key=openai_api_key)
+                    client_config = {"api_key": openai_api_key}
+                    if openai_project_id and openai_project_id != "proj-your_project_id_here":
+                        client_config["project"] = openai_project_id
+                    
+                    self.openai_client = AsyncOpenAI(**client_config)
                     print("✅ OpenAI client initialized")
+                    if openai_project_id:
+                        print(f"📁 Using OpenAI Project: {openai_project_id}")
                 except Exception as e:
                     print(f"❌ Failed to initialize OpenAI: {e}")
                     self.provider = "mock"

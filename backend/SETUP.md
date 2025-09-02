@@ -12,6 +12,7 @@ cp .env.example .env
 Edit `backend/.env` and replace the placeholder:
 ```env
 OPENAI_API_KEY=sk-your_actual_openai_api_key_here
+OPENAI_PROJECT_ID=proj-your_project_id_here
 LLM_PROVIDER=openai
 ```
 
