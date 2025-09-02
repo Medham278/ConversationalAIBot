@@ -4,7 +4,6 @@
 const workingModels = [
   "microsoft/DialoGPT-medium",
   "microsoft/DialoGPT-small", 
-              return { text: botResponse, model: modelName };
   "gpt2"
 ];
 
@@ -117,7 +116,6 @@ async function tryHuggingFaceAPI(message) {
           
           // Remove common artifacts
           botResponse = botResponse.replace(/^[:\-\s]+/, '').trim();
-          botResponse = botResponse.replace(/\n+/g, ' ').trim();
           
           // Ensure we have a meaningful response
           if (botResponse.length > 3 && !botResponse.toLowerCase().includes('error')) {
@@ -132,7 +130,6 @@ async function tryHuggingFaceAPI(message) {
     } catch (error) {
       console.error(`Error with model ${modelName}:`, error);
       continue;
-    }
   }
   
   console.log('All Hugging Face models failed');
@@ -173,6 +170,7 @@ export async function sendMessage(sessionId, message) {
       };
     }
     
+    if (lowerMessage.includes('narendra modi')) {
     return { 
       answer: "I'm having some connectivity issues with my AI backend right now. The models I'm trying to use aren't responding properly. Please try again in a moment, or let me know if you'd like me to attempt a different approach to your question.",
       model: "fallback"
