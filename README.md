@@ -1,16 +1,19 @@
 # Conversational AI Bot
 
-A modern, responsive conversational AI bot built with React and designed to connect to a FastAPI backend.
+A modern, responsive conversational AI bot built with React and Vite, featuring Hugging Face API integration with intelligent fallback responses.
 
 ## Features
 
 - 🤖 **Intelligent Chat Interface** - Clean, modern chat UI with typing indicators
 - 🔄 **Real-time Messaging** - Smooth message flow with proper state management
+- 🏷️ **Model Indicators** - Visual badges showing which AI model responded
 - 📊 **Session Metrics** - Track conversation statistics and performance
 - 🎨 **Beautiful Design** - Modern glassmorphism UI with smooth animations
 - 📱 **Responsive Layout** - Works perfectly on desktop, tablet, and mobile
-- 🔌 **FastAPI Ready** - Built to connect seamlessly with FastAPI backend
-- ⚡ **Mock Mode** - Works standalone with mock responses for development
+- 🤗 **Hugging Face Integration** - Multiple model fallback system
+- ⚡ **Smart Fallbacks** - Conversational responses when API is unavailable
+
+![Demo Screenshot](./public/demo-screenshot.png)
 
 ## Getting Started
 
@@ -34,89 +37,73 @@ npm install
 
 3. Start the development server:
 ```bash
-npm start
+npm run dev
 ```
 
 The app will open at `http://localhost:3000`
 
-## Backend Integration
+## Configuration
 
-This frontend is designed to work with a FastAPI backend. The expected API endpoints are:
+### Hugging Face API (Optional)
 
-- `POST /chat/start` - Initialize a new chat session
-- `POST /chat/message` - Send a message and get AI response
-- `GET /admin/metrics` - Get session metrics
-- `GET /health` - Health check endpoint
+To enable AI responses, get a free API key from [Hugging Face](https://huggingface.co/settings/tokens):
 
-## LLM Integration
-
-The backend supports multiple LLM providers:
-
-### OpenAI (Recommended)
-1. Get an API key from [OpenAI](https://platform.openai.com/api-keys)
-2. Copy `backend/.env.example` to `backend/.env`
-3. Add your API key: `OPENAI_API_KEY=sk-your_actual_key_here`
-4. Set `LLM_PROVIDER=openai`
-
-**⚠️ SECURITY NOTE:** Never commit your `.env` file to Git! It's already in `.gitignore` to prevent accidental commits.
-
-### Ollama (Local LLM)
-1. Install [Ollama](https://ollama.ai/)
-2. Run `ollama pull llama2` (or your preferred model)
-3. Set `LLM_PROVIDER=ollama` in your `.env` file
-4. Configure `OLLAMA_BASE_URL` and `OLLAMA_MODEL`
-
-### Mock Mode (Development)
-- Set `LLM_PROVIDER=mock` for development with simulated responses
-
-### Environment Variables
-
-Create a `.env` file in the backend directory:
-
+1. Create a `.env` file in the root directory
+2. Add your API key:
 ```env
-# LLM Configuration
-LLM_PROVIDER=openai
-OPENAI_API_KEY=your_openai_api_key_here
-
-# Alternative: Ollama
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama2
-
-# Server Configuration
-HOST=0.0.0.0
-PORT=8000
-DEBUG=True
-
-# Redis Configuration
-REDIS_URL=redis://localhost:6379
-
-# CORS Configuration
-ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+VITE_HUGGING_FACE_API_KEY=hf_your_actual_token_here
 ```
+
+**Note:** The app works without an API key using intelligent fallback responses.
+
+## AI Models
+
+The app tries multiple Hugging Face models in order:
+
+### Conversational Models
+- **microsoft/DialoGPT-medium** - Primary conversational AI
+- **microsoft/DialoGPT-small** - Lighter conversational model  
+- **microsoft/DialoGPT-large** - Advanced conversational model
+
+### General Purpose Models
+- **facebook/blenderbot-400M-distill** - Facebook's conversational AI
+- **facebook/blenderbot_small-90M** - Compact BlenderBot
+- **gpt2** - OpenAI's GPT-2
+- **distilgpt2** - Optimized GPT-2
+
+### Model Indicators
+
+Each response shows which model answered:
+- 💬 **MessageSquare** - DialoGPT models
+- 🖥️ **Cpu** - GPT-2 models  
+- ⚡ **Zap** - BlenderBot models
+- 🤖 **Bot** - Fallback responses
 
 ## Project Structure
 
 ```
 src/
 ├── components/          # Reusable UI components
-├── services/           # API service layer
+├── api/                # API service layer
+│   └── chat.js         # Hugging Face API integration
 ├── hooks/              # Custom React hooks
-├── App.js              # Main application component
+│   └── useChat.js      # Chat state management
+├── App.jsx             # Main application component
 ├── App.css             # Application styles
-└── index.js            # Application entry point
+└── main.jsx            # Application entry point
 ```
 
 ## Features in Detail
 
 ### Chat Interface
 - Real-time messaging with typing indicators
-- Message timestamps and status indicators
+- Message timestamps and model indicators
 - Error handling with user-friendly messages
 - Auto-scroll to latest messages
 
 ### Session Management
 - Automatic session initialization
-- Session persistence during the conversation
+- Session persistence during conversation
 - Connection status monitoring
 
 ### Metrics Dashboard
@@ -124,42 +111,43 @@ src/
 - Response time tracking
 - Message count and session duration
 
-### Mock Mode
-The application includes a mock mode that provides realistic responses for development and testing without requiring a backend server.
+### Fallback System
+When Hugging Face API is unavailable, the app provides:
+- Conversational responses to greetings
+- Question-type aware acknowledgments
+- Honest communication about API status
+- No hardcoded factual information
 
 ## Customization
 
 ### Styling
-The app uses CSS custom properties for easy theming. Modify the CSS variables in `src/App.css`:
+The app uses CSS custom properties for easy theming. Modify variables in `src/App.css`:
 
 ```css
 :root {
   --primary-color: #3b82f6;
   --background-color: #0f172a;
   --text-color: #f1f5f9;
-  /* ... other variables */
 }
 ```
 
-### API Configuration
-Update the `ChatService` class in `src/services/ChatService.js` to modify API endpoints or add authentication.
+### Adding Models
+Update the `workingModels` array in `src/api/chat.js` to try different Hugging Face models.
 
 ## Development
 
 ### Available Scripts
 
-- `npm start` - Start development server
-- `npm build` - Build for production
-- `npm test` - Run tests
-- `npm eject` - Eject from Create React App
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
 
-### Testing
+### Environment Variables
 
-The app includes comprehensive error handling and fallback mechanisms:
-- Network connectivity issues
-- API endpoint failures
-- Invalid responses
-- Session management errors
+```env
+# Optional: Hugging Face API key
+VITE_HUGGING_FACE_API_KEY=hf_your_token_here
+```
 
 ## Deployment
 
@@ -169,16 +157,43 @@ Build the app for production:
 npm run build
 ```
 
-The build folder contains the optimized production build ready for deployment.
+The `dist` folder contains the optimized production build ready for deployment to any static hosting service.
+
+## API Integration
+
+The chat service (`src/api/chat.js`) handles:
+- Multiple model attempts with automatic fallback
+- Response parsing for different model formats
+- Intelligent error handling
+- Session management
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests if applicable
+4. Test with and without API keys
 5. Submit a pull request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the GNU General Public License v3.0 - see the LICENSE file for details.
+
+## Troubleshooting
+
+### Common Issues
+
+**Models returning 404 errors:**
+- This is normal with Hugging Face's free tier
+- The app automatically falls back to conversational responses
+- Try getting a Hugging Face API key for better reliability
+
+**Slow responses:**
+- Free tier models may take time to "warm up"
+- The app shows typing indicators during processing
+- Consider upgrading to Hugging Face Pro for faster responses
+
+**No responses:**
+- Check browser console for errors
+- Verify API key format if using one
+- The fallback system should still work without API access
