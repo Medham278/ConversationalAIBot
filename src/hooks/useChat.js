@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import ChatService from '../services/ChatService';
+import * as ChatService from '../api/chat';
 
 export const useChat = () => {
   const [messages, setMessages] = useState([
