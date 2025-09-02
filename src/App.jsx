@@ -255,10 +255,12 @@ function App() {
 
           <div className="info-panel">
             <h4>Hugging Face Integration</h4>
-            <p>Connected to DialoGPT-medium</p>
-            <p className="info-note">
-              Backend URL: <code>http://localhost:8000</code>
-            </p>
+            <p>Direct API calls to DialoGPT-medium</p>
+            <div className="info-note">
+              <p>Frontend-only mode</p>
+              <p>Add your HF token to <code>.env</code>:</p>
+              <code>VITE_HUGGING_FACE_API_KEY=hf_your_token</code>
+            </div>
           </div>
         </div>
       </div>
