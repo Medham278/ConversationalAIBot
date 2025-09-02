@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const fetch = require('node-fetch');
 require('dotenv').config();
 
 const app = express();
@@ -27,10 +28,16 @@ app.get('/', (req, res) => {
 // Chat endpoint
 app.post('/chat', async (req, res) => {
   try {
-    const { message, conversation_history = [] } = req.body;
+    const { message } = req.body;
 
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
+    }
+
+    if (!HF_API_KEY || HF_API_KEY === 'hf_your_token_here') {
+      return res.status(400).json({ 
+        error: 'Hugging Face API key not configured. Please add your API key to .env file.' 
+      });
     }
 
     // Call Hugging Face API
@@ -41,35 +48,47 @@ app.post('/chat', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        inputs: message,
+        inputs: {
+          past_user_inputs: [],
+          generated_responses: [],
+          text: message
+        },
         parameters: {
-          max_length: 200,
+          max_length: 1000,
+          min_length: 30,
           temperature: 0.7,
           do_sample: true,
-          top_p: 0.9
+          top_p: 0.9,
+          repetition_penalty: 1.03
         }
       })
     });
 
     if (!hfResponse.ok) {
-      throw new Error(`Hugging Face API error: ${hfResponse.status}`);
+      const errorText = await hfResponse.text();
+      console.error('HF API Error:', errorText);
+      throw new Error(`Hugging Face API error: ${hfResponse.status} - ${errorText}`);
     }
 
     const hfData = await hfResponse.json();
+    console.log('HF Response:', hfData);
     let response;
     
     // Handle different response formats
-    if (Array.isArray(hfData) && hfData[0]?.generated_text) {
-      response = hfData[0].generated_text.replace(message, '').trim();
-    } else if (hfData.generated_text) {
-      response = hfData.generated_text.replace(message, '').trim();
+    if (hfData.generated_text) {
+      response = hfData.generated_text.trim();
+    } else if (Array.isArray(hfData) && hfData[0]?.generated_text) {
+      response = hfData[0].generated_text.trim();
+    } else if (hfData.conversation && hfData.conversation.generated_responses) {
+      response = hfData.conversation.generated_responses[hfData.conversation.generated_responses.length - 1];
     } else {
-      response = "I'm here to help! Could you please rephrase your question?";
+      console.log('Unexpected HF response format:', hfData);
+      response = "I understand your question. Let me help you with that!";
     }
 
     // Fallback if response is empty
     if (!response || response.length < 2) {
-      response = "I understand your question. Let me help you with that!";
+      response = "I'm here to help! Could you please provide more details about what you'd like to know?";
     }
 
     res.json({
@@ -80,7 +99,7 @@ app.post('/chat', async (req, res) => {
 
   } catch (error) {
     console.error('Hugging Face API Error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to get response from Hugging Face',
       details: error.message 
     });
@@ -90,6 +109,6 @@ app.post('/chat', async (req, res) => {
 // Start server
 app.listen(port, () => {
   console.log(`🚀 Hugging Face Chat Server running on http://localhost:${port}`);
-  console.log(`📝 Make sure to set your HUGGING_FACE_API_KEY in .env file`);
+  console.log(`📝 Using API Key: ${HF_API_KEY ? 'Configured ✅' : 'Missing ❌'}`);
   console.log(`🤖 Using model: ${HF_MODEL}`);
 });
