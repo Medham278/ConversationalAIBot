@@ -54,8 +54,11 @@ The backend supports multiple LLM providers:
 
 ### OpenAI (Recommended)
 1. Get an API key from [OpenAI](https://platform.openai.com/api-keys)
-2. Set `OPENAI_API_KEY` in your `.env` file
-3. Set `LLM_PROVIDER=openai`
+2. Copy `backend/.env.example` to `backend/.env`
+3. Add your API key: `OPENAI_API_KEY=sk-your_actual_key_here`
+4. Set `LLM_PROVIDER=openai`
+
+**⚠️ SECURITY NOTE:** Never commit your `.env` file to Git! It's already in `.gitignore` to prevent accidental commits.
 
 ### Ollama (Local LLM)
 1. Install [Ollama](https://ollama.ai/)
