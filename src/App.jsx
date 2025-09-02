@@ -1,21 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Settings, Activity } from 'lucide-react';
-import { startSession, sendMessage, fetchMetrics } from './api/chat';
+import { useChat } from './hooks/useChat';
 import './App.css';
 
 function App() {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: 'bot',
-      content: 'Hello! I\'m your AI assistant. How can I help you today?',
-      timestamp: new Date()
-    }
-  ]);
+  const {
+    messages,
+    isLoading,
+    sessionId,
+    isConnected,
+    sendMessage,
+    clearMessages
+  } = useChat();
+  
   const [inputMessage, setInputMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
   const [metrics, setMetrics] = useState({
     totalMessages: 0,
     avgResponseTime: 250,
@@ -24,10 +22,6 @@ function App() {
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-
-  useEffect(() => {
-    initializeSession();
-  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -39,48 +33,20 @@ function App() {
     }
   }, []);
 
-  const initializeSession = async () => {
-    try {
-      const session = await startSession();
-      setSessionId(session.session_id);
-      setIsConnected(true);
-    } catch (error) {
-      console.error('Failed to initialize session:', error);
-      setIsConnected(false);
-    }
-  };
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading || !sessionId) return;
-
-    const userMessage = {
-      id: Date.now(),
-      type: 'user',
-      content: inputMessage.trim(),
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
+    if (!inputMessage.trim() || isLoading) return;
+    
+    const message = inputMessage.trim();
     setInputMessage('');
-    setIsLoading(true);
 
     const startTime = Date.now();
 
     try {
-      const response = await sendMessage(sessionId, userMessage.content);
-      
-      const botMessage = {
-        id: Date.now() + 1,
-        type: 'bot',
-        content: response.answer,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, botMessage]);
+      await sendMessage(message);
       
       const responseTime = Date.now() - startTime;
       // Update metrics
@@ -89,20 +55,8 @@ function App() {
         avgResponseTime: Math.round((prev.avgResponseTime * prev.totalMessages + responseTime) / (prev.totalMessages + 1)),
         sessionDuration: prev.sessionDuration + 1
       }));
-
     } catch (error) {
       console.error('Failed to send message:', error);
-      const errorMessage = {
-        id: Date.now() + 1,
-        type: 'bot',
-        content: `Connection Error: ${error.message}`,
-        timestamp: new Date(),
-        isError: true
-      };
-      setMessages(prev => [...prev, errorMessage]);
-      setIsConnected(false);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -239,12 +193,7 @@ function App() {
               <button 
                 className="action-button"
                 onClick={() => {
-                  setMessages([{
-                    id: 1,
-                    type: 'bot',
-                    content: 'Hello! I\'m your AI assistant. How can I help you today?',
-                    timestamp: new Date()
-                  }]);
+                  clearMessages();
                   setMetrics({ totalMessages: 0, avgResponseTime: 250, sessionDuration: 0 });
                 }}
               >
