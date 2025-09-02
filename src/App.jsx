@@ -236,8 +236,8 @@ function App() {
           </div>
 
           <div className="info-panel">
-            <h4>OpenAI Integration</h4>
-            <p>Connected to OpenAI GPT-3.5-turbo</p>
+            <h4>Hugging Face Integration</h4>
+            <p>Connected to DialoGPT-medium</p>
             <p className="info-note">
               Backend URL: <code>http://localhost:8000</code>
             </p>
