@@ -5,58 +5,56 @@ class ChatService {
 
   async startSession() {
     try {
-      const response = await fetch(`${this.baseURL}/`);
+      const response = await fetch(`${this.baseURL}/`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
-      return { session_id: 'demo-session-' + Date.now() };
+      console.log('Backend connected:', data);
+      return { session_id: 'hf-session-' + Date.now() };
     } catch (error) {
-      console.error('Backend not available, using mock mode');
-      return { session_id: 'mock-session-' + Date.now() };
+      console.error('Backend connection failed:', error);
+      throw error; // Don't fall back to mock, let user know backend is down
     }
   }
 
   async sendMessage(sessionId, message) {
     try {
+      console.log('Sending message to HF backend:', message);
+      
       const response = await fetch(`${this.baseURL}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message })
+        body: JSON.stringify({ message: message })
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('HF API Error Response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
-      return { answer: data.response };
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      // Return mock response if backend fails
-      return this.getMockResponse(message);
-    }
-  }
-
-  getMockResponse(message) {
-    const responses = {
-      'hello': 'Hello! How can I assist you today?',
-      'help': 'I can help you with various tasks including answering questions, providing information, and having conversations. What would you like to know?',
-      'capabilities': 'I can assist with:\n• Answering questions\n• Providing explanations\n• Having conversations\n• Helping with problem-solving\n• And much more!',
-      'what can you do': 'I\'m an AI assistant capable of helping with a wide range of tasks. I can answer questions, explain concepts, help with analysis, and engage in meaningful conversations.',
-      'default': 'I understand you\'re asking about "' + message + '". While I don\'t have a specific response for that right now, I\'m here to help! Could you provide more details or ask something else?'
-    };
-
-    const lowerMessage = message.toLowerCase();
-    let response = responses.default;
-
-    for (const [key, value] of Object.entries(responses)) {
-      if (key !== 'default' && lowerMessage.includes(key)) {
-        response = value;
-        break;
+      console.log('HF API Response:', data);
+      
+      if (data.response) {
+        return { answer: data.response };
+      } else {
+        throw new Error('No response from HF API');
       }
+    } catch (error) {
+      console.error('Failed to send message to HF backend:', error);
+      throw error; // Don't use mock responses, show the error
     }
-
-    return Promise.resolve({ answer: response });
   }
 
   async getMetrics() {

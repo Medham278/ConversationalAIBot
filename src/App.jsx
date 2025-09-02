@@ -78,7 +78,7 @@ function App() {
       const errorMessage = {
         id: Date.now() + 1,
         type: 'bot',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: `Connection Error: ${error.message}. Make sure your Hugging Face backend is running on localhost:8000`,
         timestamp: new Date(),
         isError: true
       };
