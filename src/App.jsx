@@ -14,8 +14,8 @@ function App() {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState('demo-session-' + Date.now());
-  const [isConnected, setIsConnected] = useState(true);
+  const [sessionId, setSessionId] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
   const [metrics, setMetrics] = useState({
     totalMessages: 0,
     avgResponseTime: 250,
@@ -24,6 +24,10 @@ function App() {
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    initializeSession();
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -35,12 +39,23 @@ function App() {
     }
   }, []);
 
+  const initializeSession = async () => {
+    try {
+      const session = await ChatService.startSession();
+      setSessionId(session.session_id);
+      setIsConnected(true);
+    } catch (error) {
+      console.error('Failed to initialize session:', error);
+      setIsConnected(false);
+    }
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+    if (!inputMessage.trim() || isLoading || !sessionId) return;
 
     const userMessage = {
       id: Date.now(),
@@ -53,9 +68,10 @@ function App() {
     setInputMessage('');
     setIsLoading(true);
 
+    const startTime = Date.now();
+
     try {
-      // Use mock response in demo mode
-      const response = await ChatService.getMockResponse(userMessage.content);
+      const response = await ChatService.sendMessage(sessionId, userMessage.content);
       
       const botMessage = {
         id: Date.now() + 1,
@@ -66,10 +82,11 @@ function App() {
 
       setMessages(prev => [...prev, botMessage]);
       
+      const responseTime = Date.now() - startTime;
       // Update metrics
       setMetrics(prev => ({
         totalMessages: prev.totalMessages + 1,
-        avgResponseTime: Math.round(250 + Math.random() * 200),
+        avgResponseTime: Math.round((prev.avgResponseTime * prev.totalMessages + responseTime) / (prev.totalMessages + 1)),
         sessionDuration: prev.sessionDuration + 1
       }));
 
@@ -78,11 +95,12 @@ function App() {
       const errorMessage = {
         id: Date.now() + 1,
         type: 'bot',
-        content: `Connection Error: ${error.message}. Make sure your Hugging Face backend is running on localhost:8000`,
+        content: `Connection Error: ${error.message}`,
         timestamp: new Date(),
         isError: true
       };
       setMessages(prev => [...prev, errorMessage]);
+      setIsConnected(false);
     } finally {
       setIsLoading(false);
     }
