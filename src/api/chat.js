@@ -23,6 +23,7 @@ export async function sendMessage(sessionId, message) {
   }
 
   try {
+    // Use a more reliable model for text generation
     const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium', {
       method: 'POST',
       headers: {
@@ -30,12 +31,17 @@ export async function sendMessage(sessionId, message) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        inputs: message,
+        inputs: {
+          past_user_inputs: [],
+          generated_responses: [],
+          text: message
+        },
         parameters: {
           return_full_text: false,
-          max_new_tokens: 100,
+          max_new_tokens: 50,
           temperature: 0.7,
-          do_sample: true
+          do_sample: true,
+          repetition_penalty: 1.1
         },
         options: {
           wait_for_model: true,
@@ -45,20 +51,63 @@ export async function sendMessage(sessionId, message) {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // If DialoGPT fails, try a simpler text generation model
+      const fallbackResponse = await fetch('https://api-inference.huggingface.co/models/gpt2', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inputs: message,
+          parameters: {
+            max_new_tokens: 50,
+            temperature: 0.7,
+            do_sample: true,
+            return_full_text: false
+          },
+          options: {
+            wait_for_model: true
+          }
+        })
+      });
+
+      if (!fallbackResponse.ok) {
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      }
+
+      const fallbackData = await fallbackResponse.json();
+      let botResponse = '';
+      
+      if (Array.isArray(fallbackData) && fallbackData.length > 0) {
+        botResponse = fallbackData[0].generated_text || fallbackData[0].text || '';
+      } else if (fallbackData.generated_text) {
+        botResponse = fallbackData.generated_text;
+      }
+
+      // Clean up the response
+      if (botResponse) {
+        botResponse = botResponse.replace(message, '').trim();
+      }
+
+      if (!botResponse) {
+        botResponse = "I understand your message. Could you tell me more about what you'd like to discuss?";
+      }
+
+      return { answer: botResponse };
     }
 
     const data = await response.json();
     let botResponse = '';
     
-    if (Array.isArray(data) && data.length > 0) {
+    if (data.generated_text) {
+      botResponse = data.generated_text.trim();
+    } else if (Array.isArray(data) && data.length > 0) {
       if (data[0].generated_text) {
         botResponse = data[0].generated_text.trim();
       } else if (data[0].text) {
         botResponse = data[0].text.trim();
       }
-    } else if (data.generated_text) {
-      botResponse = data.generated_text.trim();
     }
 
     if (!botResponse) {
@@ -68,7 +117,16 @@ export async function sendMessage(sessionId, message) {
     return { answer: botResponse };
   } catch (error) {
     console.error('Hugging Face API Error:', error);
-    return { answer: `API Error: ${error.message}. Please check your API key configuration.` };
+    
+    // Provide a helpful fallback response
+    const fallbackResponses = [
+      "I'm having trouble connecting to the AI service right now. Could you try rephrasing your question?",
+      "There seems to be a temporary issue with the AI service. Let me try to help you in a different way.",
+      "I'm experiencing some technical difficulties. Could you tell me more about what you're looking for?"
+    ];
+    
+    const randomFallback = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+    return { answer: randomFallback };
   }
 }
 

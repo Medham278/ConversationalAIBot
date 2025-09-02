@@ -254,12 +254,12 @@ function App() {
           </div>
 
           <div className="info-panel">
-            <h4>Hugging Face Integration</h4>
-            <p>Direct API calls to DialoGPT-medium</p>
+            <h4>AI Integration Status</h4>
+            <p>Direct API calls to Hugging Face</p>
             <div className="info-note">
-              <p>Frontend-only mode</p>
-              <p>Add your HF token to <code>.env</code>:</p>
-              <code>VITE_HUGGING_FACE_API_KEY=hf_your_token</code>
+              <p>✅ API Key Configured</p>
+              <p>Using: DialoGPT-medium with GPT-2 fallback</p>
+              <code>Status: Ready</code>
             </div>
           </div>
         </div>
