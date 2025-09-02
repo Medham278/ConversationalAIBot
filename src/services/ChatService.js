@@ -2,7 +2,7 @@ import axios from 'axios';
 
 class ChatService {
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+    this.baseURL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:8000';
     this.client = axios.create({
       baseURL: this.baseURL,
       timeout: 30000,
