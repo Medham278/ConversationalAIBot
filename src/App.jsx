@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Settings, Activity } from 'lucide-react';
-import ChatService from './services/ChatService';
+import { startSession, sendMessage, fetchMetrics } from './api/chat';
 import './App.css';
 
 function App() {
@@ -41,7 +41,7 @@ function App() {
 
   const initializeSession = async () => {
     try {
-      const session = await ChatService.startSession();
+      const session = await startSession();
       setSessionId(session.session_id);
       setIsConnected(true);
     } catch (error) {
@@ -71,7 +71,7 @@ function App() {
     const startTime = Date.now();
 
     try {
-      const response = await ChatService.sendMessage(sessionId, userMessage.content);
+      const response = await sendMessage(sessionId, userMessage.content);
       
       const botMessage = {
         id: Date.now() + 1,
