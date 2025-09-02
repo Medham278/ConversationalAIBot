@@ -1,67 +1,159 @@
-# backend/app/main.py
 """
-Main application entry point for the FastAPI-based chat application.
-This module initializes the FastAPI app, sets up routes, and handles session management.
+FastAPI backend for Conversational AI Bot
+Provides chat endpoints, session management, and metrics
 """
 
-from fastapi import FastAPI, HTTPException, Request
-from app.schemas import ChatRequest, ChatResponse
-from app.genai import get_ai_response
-from app.metrics import log_metrics
-import redis.asyncio as aioredis
-import uuid
-
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+import os
+from dotenv import load_dotenv
 
-app = FastAPI()
+from app.models import ChatRequest, ChatResponse, SessionResponse, MetricsResponse
+from app.services.chat_service import ChatService
+from app.services.session_service import SessionService
+from app.services.metrics_service import MetricsService
+from app.database import get_redis_client
 
+# Load environment variables
+load_dotenv()
+
+# Global services
+chat_service = None
+session_service = None
+metrics_service = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager"""
+    global chat_service, session_service, metrics_service
+    
+    # Initialize services
+    redis_client = await get_redis_client()
+    session_service = SessionService(redis_client)
+    metrics_service = MetricsService(redis_client)
+    chat_service = ChatService(session_service, metrics_service)
+    
+    print("🚀 FastAPI backend started successfully!")
+    print("📡 Redis connection established")
+    print("🤖 AI chat service initialized")
+    
+    yield
+    
+    # Cleanup
+    if redis_client:
+        await redis_client.close()
+    print("🔄 Backend shutdown complete")
+
+# Create FastAPI app
+app = FastAPI(
+    title="Conversational AI Bot API",
+    description="Backend API for the conversational AI bot with session management and metrics",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# Configure CORS
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-redis = None  # We'll initialize in startup event
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "message": "Conversational AI Bot API",
+        "version": "1.0.0",
+        "status": "running"
+    }
 
-@app.on_event("startup")
-async def startup():
-    global redis
-    redis = aioredis.Redis.from_url('redis://localhost')
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "services": {
+            "api": "running",
+            "redis": "connected" if session_service else "disconnected",
+            "ai": "ready"
+        }
+    }
 
-@app.on_event("shutdown")
-async def shutdown():
-    await redis.close()
+@app.post("/chat/start", response_model=SessionResponse)
+async def start_chat_session():
+    """Start a new chat session"""
+    try:
+        session_id = await session_service.create_session()
+        await metrics_service.increment_active_sessions()
+        
+        return SessionResponse(
+            session_id=session_id,
+            status="active",
+            message="Chat session started successfully"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start session: {str(e)}")
 
-@app.post("/chat/start")
-async def start_session():
-    session_id = str(uuid.uuid4())
-    await redis.set(f"session:{session_id}:context", "")
-    return {"session_id": session_id}
+@app.post("/chat/message", response_model=ChatResponse)
+async def send_message(request: ChatRequest):
+    """Send a message and get AI response"""
+    try:
+        # Validate session
+        if not await session_service.session_exists(request.session_id):
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        # Get AI response
+        response = await chat_service.process_message(
+            session_id=request.session_id,
+            message=request.message
+        )
+        
+        return ChatResponse(
+            answer=response,
+            session_id=request.session_id,
+            timestamp=None  # Will be set by the model
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to process message: {str(e)}")
 
-@app.post("/chat/message")
-async def chat_message(data: ChatRequest):
-    # Retrieve session context
-    value = await redis.get(f"session:{data.session_id}:context")
-    if value is not None:
-        context = value.decode("utf-8")
-    else:
-        context = None
-    if context is None:
-        raise HTTPException(status_code=404, detail="Session not found")
-    # Call GenAI (mock or OpenAI)
-    response = await get_ai_response(data.message, context)
-    # Update context
-    new_context = context + "\nUser: " + data.message + "\nAI: " + response
-    await redis.set(f"session:{data.session_id}:context", new_context)
-    # Log metrics (to file/db/etc.)
-    log_metrics(data.session_id, data.message, response)
-    return ChatResponse(answer=response)
-
-@app.get("/admin/metrics")
+@app.get("/admin/metrics", response_model=MetricsResponse)
 async def get_metrics():
-    # Aggregate metrics for admin dashboard
-    # (For demo: active session count, avg response time, error rate)
-    # We'll mock initially, then wire real metrics
-    return {"active_sessions": 25, "avg_response_time_ms": 210, "error_rate": "1.2%"}
+    """Get system metrics for admin dashboard"""
+    try:
+        metrics = await metrics_service.get_metrics()
+        return MetricsResponse(**metrics)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get metrics: {str(e)}")
+
+@app.delete("/chat/session/{session_id}")
+async def end_session(session_id: str):
+    """End a chat session"""
+    try:
+        if not await session_service.session_exists(session_id):
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        await session_service.delete_session(session_id)
+        await metrics_service.decrement_active_sessions()
+        
+        return {"message": "Session ended successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to end session: {str(e)}")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host=os.getenv("HOST", "0.0.0.0"),
+        port=int(os.getenv("PORT", 8000)),
+        reload=os.getenv("DEBUG", "True").lower() == "true"
+    )
