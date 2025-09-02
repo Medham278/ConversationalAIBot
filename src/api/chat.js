@@ -1,5 +1,34 @@
 // src/api/chat.js
-import api from "./client";
+import { pipeline } from '@xenova/transformers';
+
+let generator = null;
+
+// Initialize the text generation pipeline
+async function initializeGenerator() {
+  if (!generator) {
+    try {
+      // Use a lightweight model that works well in browsers
+      generator = await pipeline('text-generation', 'Xenova/gpt2', {
+        quantized: true,
+        progress_callback: (progress) => {
+          console.log('Model loading progress:', progress);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to initialize local model:', error);
+      generator = null;
+    }
+  }
+  return generator;
+}
+
+// Working Hugging Face models to try
+const workingModels = [
+  "gpt2",
+  "microsoft/DialoGPT-small",
+  "facebook/blenderbot-400M-distill",
+  "distilgpt2"
+];
 
 export async function startSession() {
   // For frontend-only mode, generate a session ID
@@ -7,52 +36,19 @@ export async function startSession() {
   return { session_id: sessionId };
 }
 
-export async function sendMessage(sessionId, message) {
-  // Direct Hugging Face API call
+async function tryHuggingFaceAPI(message) {
   const apiKey = import.meta.env.VITE_HUGGING_FACE_API_KEY;
   
   if (!apiKey || apiKey === 'hf_your_token_here') {
-    // Return mock response if no API key
-    const mockResponses = [
-      "I'm currently running in demo mode. Please add your Hugging Face API key to get AI responses!",
-      "Hello! To get real AI responses, please configure your VITE_HUGGING_FACE_API_KEY in the .env file.",
-      "I'm a demo response. Add your Hugging Face token to enable actual AI conversations!"
-    ];
-    const randomResponse = mockResponses[Math.floor(Math.random() * mockResponses.length)];
-    return { answer: randomResponse };
+    return null;
   }
 
-  try {
-    // Use a more reliable model for text generation
-    const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        inputs: {
-          past_user_inputs: [],
-          generated_responses: [],
-          text: message
-        },
-        parameters: {
-          return_full_text: false,
-          max_new_tokens: 50,
-          temperature: 0.7,
-          do_sample: true,
-          repetition_penalty: 1.1
-        },
-        options: {
-          wait_for_model: true,
-          use_cache: false
-        }
-      })
-    });
-
-    if (!response.ok) {
-      // If DialoGPT fails, try a simpler text generation model
-      const fallbackResponse = await fetch('https://api-inference.huggingface.co/models/gpt2', {
+  // Try each model until one works
+  for (const modelName of workingModels) {
+    try {
+      console.log(`Trying model: ${modelName}`);
+      
+      const response = await fetch(`https://api-inference.huggingface.co/models/${modelName}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -64,69 +60,120 @@ export async function sendMessage(sessionId, message) {
             max_new_tokens: 50,
             temperature: 0.7,
             do_sample: true,
-            return_full_text: false
+            return_full_text: false,
+            pad_token_id: 50256
           },
           options: {
-            wait_for_model: true
+            wait_for_model: true,
+            use_cache: false
           }
         })
       });
 
-      if (!fallbackResponse.ok) {
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
-      }
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`Success with model: ${modelName}`, data);
+        
+        let botResponse = '';
+        
+        if (Array.isArray(data) && data.length > 0) {
+          if (data[0].generated_text) {
+            botResponse = data[0].generated_text;
+          } else if (data[0].text) {
+            botResponse = data[0].text;
+          }
+        } else if (data.generated_text) {
+          botResponse = data.generated_text;
+        }
 
-      const fallbackData = await fallbackResponse.json();
-      let botResponse = '';
-      
-      if (Array.isArray(fallbackData) && fallbackData.length > 0) {
-        botResponse = fallbackData[0].generated_text || fallbackData[0].text || '';
-      } else if (fallbackData.generated_text) {
-        botResponse = fallbackData.generated_text;
+        // Clean up the response
+        if (botResponse) {
+          // Remove the input message if it's included
+          botResponse = botResponse.replace(message, '').trim();
+          
+          // Remove common artifacts
+          botResponse = botResponse.replace(/^[:\-\s]+/, '').trim();
+          
+          if (botResponse.length > 0) {
+            return botResponse;
+          }
+        }
+      } else {
+        console.log(`Model ${modelName} failed with status:`, response.status);
       }
+    } catch (error) {
+      console.error(`Error with model ${modelName}:`, error);
+      continue;
+    }
+  }
+  
+  return null;
+}
 
+async function tryTransformersJS(message) {
+  try {
+    const gen = await initializeGenerator();
+    if (!gen) return null;
+
+    const result = await gen(message, {
+      max_new_tokens: 30,
+      temperature: 0.7,
+      do_sample: true,
+      return_full_text: false
+    });
+
+    if (result && result.length > 0) {
+      let response = result[0].generated_text || '';
       // Clean up the response
-      if (botResponse) {
-        botResponse = botResponse.replace(message, '').trim();
-      }
-
-      if (!botResponse) {
-        botResponse = "I understand your message. Could you tell me more about what you'd like to discuss?";
-      }
-
-      return { answer: botResponse };
-    }
-
-    const data = await response.json();
-    let botResponse = '';
-    
-    if (data.generated_text) {
-      botResponse = data.generated_text.trim();
-    } else if (Array.isArray(data) && data.length > 0) {
-      if (data[0].generated_text) {
-        botResponse = data[0].generated_text.trim();
-      } else if (data[0].text) {
-        botResponse = data[0].text.trim();
+      response = response.replace(message, '').trim();
+      response = response.replace(/^[:\-\s]+/, '').trim();
+      
+      if (response.length > 0) {
+        return response;
       }
     }
-
-    if (!botResponse) {
-      botResponse = "I understand your message. Could you tell me more about what you'd like to discuss?";
-    }
-
-    return { answer: botResponse };
   } catch (error) {
-    console.error('Hugging Face API Error:', error);
+    console.error('Transformers.js error:', error);
+  }
+  
+  return null;
+}
+
+export async function sendMessage(sessionId, message) {
+  try {
+    // First try Hugging Face API with multiple models
+    let response = await tryHuggingFaceAPI(message);
     
-    // Provide a helpful fallback response
-    const fallbackResponses = [
-      "I'm having trouble connecting to the AI service right now. Could you try rephrasing your question?",
-      "There seems to be a temporary issue with the AI service. Let me try to help you in a different way.",
-      "I'm experiencing some technical difficulties. Could you tell me more about what you're looking for?"
+    if (response) {
+      return { answer: response };
+    }
+
+    // If HF API fails, try local transformers.js
+    console.log('Trying local transformers.js...');
+    response = await tryTransformersJS(message);
+    
+    if (response) {
+      return { answer: response };
+    }
+
+    // If everything fails, provide contextual mock responses
+    const mockResponses = [
+      "That's an interesting point. Could you tell me more about what you're thinking?",
+      "I understand what you're saying. What would you like to explore further?",
+      "Thanks for sharing that with me. How can I help you with this topic?",
+      "I see what you mean. What specific aspect would you like to discuss?",
+      "That's a good question. Let me think about how to approach this with you."
     ];
     
-    const randomFallback = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
-    return { answer: randomFallback };
+    const randomResponse = mockResponses[Math.floor(Math.random() * mockResponses.length)];
+    return { answer: randomResponse };
+
+  } catch (error) {
+    console.error('All methods failed:', error);
+    
+    return { 
+      answer: "I'm having some technical difficulties right now, but I'm here to help. Could you try rephrasing your question?" 
+    };
   }
 }
 

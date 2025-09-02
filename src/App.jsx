@@ -204,10 +204,10 @@ function App() {
 
           <div className="info-panel">
             <h4>AI Integration Status</h4>
-            <p>Direct API calls to Hugging Face</p>
+            <p>Multi-model AI with local fallback</p>
             <div className="info-note">
-              <p>✅ API Key Configured</p>
-              <p>Using: DialoGPT-medium with GPT-2 fallback</p>
+              <p>✅ Multiple Models Available</p>
+              <p>HF API + Transformers.js fallback</p>
               <code>Status: Ready</code>
             </div>
           </div>
